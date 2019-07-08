@@ -1,0 +1,6 @@
+framework module Pods_HowMuchIEarned {
+  umbrella header "Pods-HowMuchIEarned-umbrella.h"
+
+  export *
+  module * { export * }
+}

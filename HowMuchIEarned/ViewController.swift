@@ -9,10 +9,14 @@
 import Cocoa
 
 class ViewController: NSViewController {
+    let appdDelegate = NSApplication.shared.delegate as! AppDelegate
+    @IBAction func onPressSave(_ sender: Any) {
+    }
 
+    @IBOutlet weak var APIKeyInput: NSTextField!
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        print(appdDelegate.hourlyWage)
         // Do any additional setup after loading the view.
     }
 
