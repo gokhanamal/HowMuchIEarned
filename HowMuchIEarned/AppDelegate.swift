@@ -11,48 +11,25 @@ import Alamofire
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-
-    let statusItem = NSStatusBar.system.statusItem(withLength: -1);
-    public let hourlyWage = 0;
-    public let currency = "$";
+    private let hourlyWage = 10;
+    private let currency = "$";
+    private let API_KEY = "a997d4c6a7609fd00ca4f42cfb8304d5"
+    private var timer: Timer?
+    private let statusItem = NSStatusBar.system.statusItem(withLength: -1);
+  
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        self.calculatePrice();
-        self.constructMenu();
-        _ = Timer.scheduledTimer(timeInterval: 60.0, target: self, selector: #selector(calculatePrice), userInfo: nil, repeats: true)
-        
+        setTimer()
+        calculateTotalAmount()
+        constructMenu()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        // Insert code here to tear down your application
+        timer = nil
     }
     
     
-    @objc func calculatePrice(){
-        // Insert code here to initialize your application
-        let url = "https://desktime.com/api/v2/json/employee/basic?apiKey=1f01c6d47857f57e9962b9129bdbf44b"
-        Alamofire.request(url).responseJSON { response in
-            
-            if let json = response.result.value {
-                let response = json as! NSDictionary
-                let desktimeTime = response.object(forKey: "desktimeTime")!
-                let totalWage = desktimeTime as! Float/600;
-                let formated = String(format: "%.2f", totalWage)
-                if let button = self.statusItem.button {
-                    button.title = self.currency + formated;
-                }
-            }
-        }
-    }
-    
-    
-    @objc func quit(_ sender: Any?){
-        NSApplication.shared.terminate(sender)
-    }
-    
-    @objc func preferences(_ sender: Any?){
-        var myWindowController = NSStoryboard(name: "Pref", bundle: nil).instantiateController(withIdentifier: "ViewController") as! NSViewController
-        myWindowController.showWindow(self)
-    
+    private func setTimer() {
+        timer = Timer.scheduledTimer(timeInterval: 60.0, target: self, selector: #selector(calculateTotalAmount), userInfo: nil, repeats: true)
     }
     
     func constructMenu() {
@@ -62,5 +39,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
     
+    @objc func quit(_ sender: Any?){
+        NSApplication.shared.terminate(sender)
+    }
+    
+    @objc func preferences(_ sender: Any?){
+        let viewController = NSStoryboard(name: "Main", bundle: nil).instantiateController(withIdentifier: "Pref") as! NSViewController
+    }
+
+    
+    @objc func calculateTotalAmount(){
+        let url = URL(string: "https://desktime.com/api/v2/json/employee/basic?apiKey="+API_KEY)!
+        let task = URLSession.shared.dataTask(with: url) { data,response,error in
+            guard let data = data else { return }
+            let decoder = JSONDecoder()
+            do {
+                let json = try decoder.decode(DesktimeResponse.self, from:  data)
+                let totalWage = (json.desktimeTime/60.0) * Float(self.hourlyWage) ;
+                let formated = String(format: "%.2f", totalWage)
+                print(formated)
+                DispatchQueue.main.async {
+                    if let button = self.statusItem.button {
+                        button.title = self.currency + formated;
+                    }
+                }
+            } catch {
+                print(error)
+            }
+        }
+        task.resume()
+    }
+    
+    struct DesktimeResponse: Codable {
+        let id: Int
+        let email: String
+        let name: String
+        let desktimeTime: Float
+        let profileUrl: String
+    }
 }
 
